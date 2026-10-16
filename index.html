@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-bg="mountain">
+<div class="sky" id="sky"></div>
+<div class="mist"></div>
+
+<nav class="topbar" aria-label="Main">
+  <button type="button" class="nav-btn active" data-page="home" title="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-10.5z"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="games" title="Games">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="ai" title="AI">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="search" title="Search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="chat" title="Chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="apps" title="Apps">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+  </button>
+  <button type="button" class="nav-btn" data-page="settings" title="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+  </button>
+</nav>
+
+<div class="profile">
+  <div class="avatar" id="avatar">A</div>
+  <span id="username">arcade</span>
+</div>
+
+<section id="home" class="page active">
+  <div class="hero">
+    <p class="tagline">games · ai · search · chat</p>
+    <div class="clock" id="clock">00:00</div>
+    <div class="greeting" id="greeting">good afternoon</div>
+    <form class="search-shell" id="home-search-form">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="text" id="home-search" placeholder="search the web, games, or enter a url" autocomplete="off">
+      <button type="submit" class="go">Go</button>
+    </form>
+    <div class="quick-row" id="quick-apps"></div>
+    <div class="home-stats">
+      <div class="stat"><strong id="stat-games">0</strong><span>games</span></div>
+      <div class="stat"><strong id="stat-favs">0</strong><span>saved</span></div>
+      <div class="stat"><strong id="stat-msgs">0</strong><span>chat msgs</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="games" class="page">
+  <div class="panel">
+    <header class="panel-head">
+      <div>
+        <h1>Games</h1>
+        <p class="muted"><span id="game-count">0</span> titles · click to play</p>
+      </div>
+      <div class="panel-tools">
+        <input type="search" id="game-search" class="field" placeholder="Filter games…">
+        <select id="game-sort" class="field select">
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+          <option value="recent">Recently played</option>
+          <option value="fav">Favorites first</option>
+        </select>
+      </div>
+    </header>
+    <div class="chip-row" id="letter-chips"></div>
+    <div class="games-grid" id="games-grid"></div>
+    <p class="empty hidden" id="games-empty">No games match that search.</p>
+  </div>
+</section>
+
+<section id="ai" class="page">
+  <div class="panel narrow chat-panel">
+    <header class="panel-head">
+      <div>
+        <h1>AI</h1>
+        <p class="muted">On-device replies · no login</p>
+      </div>
+      <button type="button" class="btn ghost" id="ai-clear">Clear</button>
+    </header>
+    <div class="chat-log" id="ai-log"></div>
+    <form class="chat-compose" id="ai-form">
+      <input type="text" id="ai-input" class="field grow" placeholder="Ask anything…" autocomplete="off">
+      <button type="submit" class="btn">Send</button>
+    </form>
+    <div class="chip-row" id="ai-prompts">
+      <button type="button" class="chip" data-prompt="Tell me a fun fact">Fun fact</button>
+      <button type="button" class="chip" data-prompt="Give me a riddle">Riddle</button>
+      <button type="button" class="chip" data-prompt="Suggest a random game to play">Game idea</button>
+      <button type="button" class="chip" data-prompt="Write a short joke">Joke</button>
+    </div>
+  </div>
+</section>
+
+<section id="search" class="page">
+  <div class="panel narrow">
+    <header class="panel-head">
+      <div>
+        <h1>Search</h1>
+        <p class="muted">Choose an engine, then search</p>
+      </div>
+    </header>
+    <div class="options" id="engine-options">
+      <button type="button" class="opt active" data-engine="google">Google</button>
+      <button type="button" class="opt" data-engine="bing">Bing</button>
+      <button type="button" class="opt" data-engine="duckduckgo">DuckDuckGo</button>
+      <button type="button" class="opt" data-engine="startpage">Startpage</button>
+      <button type="button" class="opt" data-engine="brave">Brave</button>
+      <button type="button" class="opt" data-engine="youtube">YouTube</button>
+    </div>
+    <form class="search-shell solid" id="web-search-form" style="margin-top:16px">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="text" id="web-search" placeholder="Search the web…" autocomplete="off">
+      <button type="submit" class="go">Search</button>
+    </form>
+    <div class="note" style="margin-top:16px">Opens in the player. Proxy from Settings is used when set.</div>
+    <h3 class="subhead">Recent searches</h3>
+    <div class="chip-row" id="recent-searches"></div>
+  </div>
+</section>
+
+<section id="chat" class="page">
+  <div class="panel narrow chat-panel">
+    <header class="panel-head">
+      <div>
+        <h1>Chat room</h1>
+        <p class="muted">Local room on this device</p>
+      </div>
+      <button type="button" class="btn ghost" id="chat-clear">Clear</button>
+    </header>
+    <div class="chat-meta">
+      <input type="text" id="chat-nick" class="field" maxlength="16" placeholder="Nickname">
+      <span class="muted small" id="chat-count">0 messages</span>
+    </div>
+    <div class="chat-log" id="chat-log"></div>
+    <form class="chat-compose" id="chat-form">
+      <input type="text" id="chat-input" class="field grow" placeholder="Say something…" autocomplete="off" maxlength="280">
+      <button type="submit" class="btn">Send</button>
+    </form>
+  </div>
+</section>
+
+<section id="apps" class="page">
+  <div class="panel">
+    <header class="panel-head">
+      <div>
+        <h1>Apps & links</h1>
+        <p class="muted">Media, tools, hangouts</p>
+      </div>
+    </header>
+    <div class="apps-grid" id="apps-grid"></div>
+  </div>
+</section>
+
+<section id="settings" class="page">
+  <div class="panel narrow">
+    <header class="panel-head">
+      <div>
+        <h1>Settings</h1>
+        <p class="muted">Theme, cloak, proxy, identity</p>
+      </div>
+    </header>
+    <div class="settings-list">
+      <div class="setting">
+        <label>Display name</label>
+        <input type="text" id="set-name" class="field" maxlength="24" value="arcade">
+      </div>
+      <div class="setting">
+        <label>Background</label>
+        <div class="options" id="bg-options">
+          <button type="button" class="opt active" data-bg="mountain">Mountains</button>
+          <button type="button" class="opt" data-bg="forest">Forest</button>
+          <button type="button" class="opt" data-bg="lake">Lake</button>
+          <button type="button" class="opt" data-bg="dusk">Dusk</button>
+          <button type="button" class="opt" data-bg="ocean">Ocean</button>
+          <button type="button" class="opt" data-bg="aurora">Aurora</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>Tab cloak</label>
+        <div class="options" id="cloak-options">
+          <button type="button" class="opt active" data-cloak="none">None</button>
+          <button type="button" class="opt" data-cloak="google">Google</button>
+          <button type="button" class="opt" data-cloak="classroom">Classroom</button>
+          <button type="button" class="opt" data-cloak="drive">Drive</button>
+          <button type="button" class="opt" data-cloak="docs">Docs</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>Panic key ( ] ) destination</label>
+        <input type="text" id="set-panic" class="field" value="https://classroom.google.com">
+      </div>
+      <div class="setting">
+        <label>Proxy base URL</label>
+        <input type="text" id="set-proxy" class="field" placeholder="https://your-proxy.example/service/">
+        <p class="muted small">Optional Scramjet / UV service prefix</p>
+      </div>
+      <div class="setting">
+        <label>Games folder path</label>
+        <input type="text" id="set-games-path" class="field" value="games/">
+      </div>
+      <div class="setting">
+        <label>Default search engine</label>
+        <div class="options" id="set-engine-options">
+          <button type="button" class="opt active" data-engine="google">Google</button>
+          <button type="button" class="opt" data-engine="duckduckgo">DuckDuckGo</button>
+          <button type="button" class="opt" data-engine="bing">Bing</button>
+        </div>
+      </div>
+      <div class="setting row">
+        <label for="set-motion">Animations</label>
+        <input type="checkbox" id="set-motion" checked>
+      </div>
+      <div class="setting">
+        <button type="button" class="btn danger" id="reset-data">Reset all local data</button>
+      </div>
+    </div>
+    <p class="footer-note">Arcade — games, AI, search, chat. Runs in your browser.</p>
+  </div>
+</section>
+
+<div class="player hidden" id="player">
+  <div class="player-bar">
+    <button type="button" class="btn ghost" id="player-back">← Back</button>
+    <div class="player-title" id="player-title">Loading…</div>
+    <button type="button" class="btn ghost" id="player-fav" title="Favorite">★</button>
+    <button type="button" class="btn ghost" id="player-reload">Reload</button>
+    <button type="button" class="btn ghost" id="player-newtab">New tab</button>
+  </div>
+  <iframe id="frame" title="Player" allowfullscreen></iframe>
+</div>
+
+<script src="games.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
