@@ -36,6 +36,7 @@ body.no-motion * {
   background-position: center;
   background-repeat: no-repeat;
   transition: background-image 0.6s ease;
+  pointer-events: none;
 }
 
 body[data-bg="mountain"] .sky {
@@ -90,8 +91,9 @@ body[data-bg="aurora"] .sky {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-radius: 999px;
-  z-index: 40;
+  z-index: 100;
   box-shadow: var(--shadow);
+  pointer-events: auto;
 }
 
 .nav-btn {
@@ -117,7 +119,7 @@ body[data-bg="aurora"] .sky {
   position: fixed;
   top: 16px;
   right: 16px;
-  z-index: 40;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -407,7 +409,7 @@ body[data-bg="aurora"] .sky {
   color: var(--muted);
   padding: 40px 12px;
 }
-.hidden { display: none !important; }
+.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }
 
 .note {
   margin-top: 18px;
@@ -496,10 +498,16 @@ body[data-bg="aurora"] .sky {
 .player {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 90;
   background: #070b12;
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
+}
+.player.hidden {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 .player-bar {
   display: flex;
