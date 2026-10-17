@@ -31,6 +31,7 @@
     query: "",
     currentUrl: "",
     currentName: "",
+    isLocalGame: false,
     favs: store.get("favs", []),
     recent: store.get("recent", []),
     searches: store.get("searches", []),
@@ -58,24 +59,14 @@
   const facts = [
     "Octopuses have three hearts.",
     "A group of flamingos is called a flamboyance.",
-    "Honey never spoils — jars from ancient tombs were still edible.",
+    "Honey never spoils.",
     "Bananas are berries; strawberries aren't.",
-    "There are more stars in the universe than grains of sand on Earth (roughly).",
-    "Wombat poop is cube-shaped.",
-    "The inventor of the frisbee was turned into a frisbee (his ashes).",
-    "A day on Venus is longer than its year."
-  ];
-  const riddles = [
-    { q: "What has keys but can't open locks?", a: "A piano." },
-    { q: "What gets wetter the more it dries?", a: "A towel." },
-    { q: "I speak without a mouth and hear without ears. What am I?", a: "An echo." },
-    { q: "What has to be broken before you can use it?", a: "An egg." }
+    "Wombat poop is cube-shaped."
   ];
   const jokes = [
     "Why did the scarecrow get promoted? He was outstanding in his field.",
     "I told my computer I needed a break… it froze.",
-    "Why don't skeletons fight each other? They don't have the guts.",
-    "Parallel lines have so much in common. It's a shame they'll never meet."
+    "Why don't skeletons fight each other? They don't have the guts."
   ];
 
   function games() { return window.CAMPUS_GAMES || []; }
@@ -153,24 +144,100 @@
     return url;
   }
 
-  function openPlayer(url, title, favKey) {
+  function showFallback(title, msg, path) {
+    $("#frame").classList.add("hidden");
+    $("#player-fallback").classList.remove("hidden");
+    $("#fallback-title").textContent = title;
+    $("#fallback-msg").textContent = msg;
+    $("#fallback-path").textContent = path || state.currentUrl || "";
+  }
+
+  function hideFallback() {
+    $("#player-fallback").classList.add("hidden");
+    $("#frame").classList.remove("hidden");
+  }
+
+  async function urlLooksAvailable(url) {
+    // Only useful for same-origin game files
+    try {
+      const res = await fetch(url, { method: "HEAD", cache: "no-store" });
+      return res.ok;
+    } catch {
+      try {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  async function openPlayer(url, title, favKey, opts = {}) {
+    const local = !!opts.local;
     state.currentUrl = url;
     state.currentName = title || url;
+    state.isLocalGame = local;
     $("#player-title").textContent = state.currentName;
-    $("#frame").src = url;
     $("#player").classList.remove("hidden");
     const key = favKey || title;
     $("#player-fav").textContent = state.favs.includes(key) ? "★" : "☆";
     $("#player-fav").dataset.key = key;
+
     if (title) {
       state.recent = [title, ...state.recent.filter((x) => x !== title)].slice(0, 24);
       store.set("recent", state.recent);
     }
+
+    // External sites almost always block iframes → open in new tab instead
+    if (!local && !state.proxyBase && /^https?:\/\//i.test(url)) {
+      hideFallback();
+      $("#frame").src = "about:blank";
+      showFallback(
+        "Opens in a new tab",
+        "Most sites (YouTube, Google, Discord…) block being shown inside a page. Use the button below.",
+        url
+      );
+      return;
+    }
+
+    if (local) {
+      const ok = await urlLooksAvailable(url);
+      if (!ok) {
+        $("#frame").src = "about:blank";
+        showFallback(
+          "Game file not found",
+          "Upload this file into your games folder on GitHub, then refresh.",
+          url
+        );
+        return;
+      }
+    }
+
+    hideFallback();
+    $("#frame").src = url;
+
+    // If iframe still fails to load after a moment, show help
+    const frame = $("#frame");
+    const token = String(Date.now());
+    frame.dataset.token = token;
+    setTimeout(() => {
+      if (frame.dataset.token !== token) return;
+      try {
+        // cross-origin access throws; local missing often stays blank
+        const doc = frame.contentDocument;
+        if (local && doc && doc.location && doc.location.href === "about:blank") {
+          showFallback("Game failed to load", "Check the filename matches games.js exactly.", url);
+        }
+      } catch {
+        // cross-origin = probably loaded external content; fine if proxied
+      }
+    }, 1200);
   }
 
   function closePlayer() {
     $("#player").classList.add("hidden");
     $("#frame").src = "about:blank";
+    hideFallback();
   }
 
   function toggleFav(key) {
@@ -248,7 +315,7 @@
           toggleFav(e.target.closest("[data-fav]").dataset.fav);
           return;
         }
-        openPlayer(gameUrl(card.dataset.file), card.dataset.name, card.dataset.name);
+        openPlayer(gameUrl(card.dataset.file), card.dataset.name, card.dataset.name, { local: true });
       };
     });
   }
@@ -315,30 +382,91 @@
     }
     const hit = games().find((g) => g.name.toLowerCase() === val.toLowerCase());
     if (hit) {
-      openPlayer(gameUrl(hit.file), hit.name, hit.name);
+      openPlayer(gameUrl(hit.file), hit.name, hit.name, { local: true });
       return;
     }
     doWebSearch(val);
   }
 
-  /* ---- AI (local, rule-based) ---- */
+  /* -------- Math solver -------- */
+  function trySolveMath(text) {
+    let expr = text.trim();
+    expr = expr.replace(/^(solve|calculate|what is|what's|compute)\s+/i, "");
+    expr = expr.replace(/\?+$/, "").trim();
+    expr = expr.replace(/×/g, "*").replace(/÷/g, "/").replace(/\^/g, "**");
+    // only allow safe math chars
+    if (!/^[\d\s+\-*/().,%**]+$/.test(expr) && !/^[\d\s+\-*/().,%]+$/.test(expr)) {
+      // try extracting a math-looking chunk
+      const m = text.match(/(-?\d+(?:\.\d+)?(?:\s*[\+\-\*\/xX×÷\^]\s*-?\d+(?:\.\d+)?)+)/);
+      if (!m) return null;
+      expr = m[1].replace(/x/gi, "*").replace(/×/g, "*").replace(/÷/g, "/").replace(/\^/g, "**");
+    }
+    expr = expr.replace(/(\d+(?:\.\d+)?)%/g, "($1/100)");
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = Function(`"use strict"; return (${expr});`)();
+      if (typeof result !== "number" || !isFinite(result)) return null;
+      return `${expr.replace(/\*\*/g, "^")} = ${result}`;
+    } catch {
+      return null;
+    }
+  }
+
+  /* -------- Essay writer -------- */
+  function writeEssay(topic) {
+    let t = topic.trim();
+    t = t.replace(/^(write\s+)?(an?\s+)?essay\s+(about|on|regarding)\s+/i, "");
+    t = t.replace(/^essay\s*:\s*/i, "").trim() || "this topic";
+    const title = t.charAt(0).toUpperCase() + t.slice(1);
+    return (
+`Title: ${title}
+
+Introduction
+${title} is an important subject that shows up in everyday life and school work. Understanding it helps people make better choices and explain their ideas clearly. This essay gives a simple overview of what ${t} is, why it matters, and what people can do next.
+
+Body paragraph 1 — What it is
+At its core, ${t} is about the main ideas and facts connected to the topic. Breaking it into smaller parts makes it easier to study. Clear definitions and examples help readers stay interested and remember the key points.
+
+Body paragraph 2 — Why it matters
+${title} matters because it affects people, communities, or the world in real ways. When people ignore it, problems can grow. When people learn about it, they can solve issues, support others, or improve their own skills.
+
+Body paragraph 3 — What to do
+A good next step is to learn a little more, ask questions, and practice explaining the topic in your own words. Small actions — reading, discussing, or trying a related activity — build real understanding over time.
+
+Conclusion
+In short, ${t} is worth paying attention to. With a clear definition, strong reasons, and simple next steps, anyone can write and talk about it with more confidence.
+
+(Tip: replace examples with your own facts and sources for a graded assignment.)`
+    );
+  }
+
   function aiReply(text) {
     const t = text.toLowerCase();
-    if (/fun fact|fact/.test(t)) return facts[Math.floor(Math.random() * facts.length)];
-    if (/riddle/.test(t)) {
-      const r = riddles[Math.floor(Math.random() * riddles.length)];
-      return r.q + "\n\nAnswer: " + r.a;
+
+    // Math first
+    if (/solve|calculate|what is|what's|\d\s*[\+\-\*\/x×÷^%()]/.test(t)) {
+      const solved = trySolveMath(text);
+      if (solved) return solved;
     }
+
+    // Essay
+    if (/essay|write about|paragraph about/.test(t)) {
+      return writeEssay(text);
+    }
+
+    if (/fun fact|fact/.test(t)) return facts[Math.floor(Math.random() * facts.length)];
     if (/joke|laugh|funny/.test(t)) return jokes[Math.floor(Math.random() * jokes.length)];
     if (/game|play|bored/.test(t)) {
       const g = games()[Math.floor(Math.random() * Math.max(games().length, 1))];
-      return g ? `Try **${g.name}** — it's in your Games tab.` : "Open the Games tab and pick anything.";
+      return g ? `Try ${g.name} — open it from the Games tab.` : "Open the Games tab and pick anything.";
     }
-    if (/hello|hi\b|hey/.test(t)) return "Hey. Ask for a joke, riddle, fun fact, or a game idea.";
-    if (/time|clock/.test(t)) return "It's " + $("#clock").textContent + " on your machine.";
-    if (/help|what can/.test(t)) return "I can do jokes, riddles, fun facts, and random game picks. For real AI chat, open an AI site from Apps.";
-    if (/proxy|scramjet|ultraviolet/.test(t)) return "Set a proxy base URL in Settings if you host Scramjet or Ultraviolet. Leave it blank to open sites directly.";
-    return "Not sure on that one. Try: fun fact, riddle, joke, or “suggest a game”. For deeper answers, launch ChatGPT / Gemini from Apps.";
+    if (/hello|hi\b|hey/.test(t)) {
+      return "Hey. I can solve math (try 12*(5+3)), write a short essay, tell a joke, or suggest a game.";
+    }
+    if (/help|what can/.test(t)) {
+      return "Try:\n• Math: solve 25*4+10\n• Essay: write an essay about space\n• Joke / fun fact / game idea\nFor full AI chat, open ChatGPT from Apps.";
+    }
+    return "Try a math problem (like 15/3+2), “write an essay about …”, a joke, or a game idea.";
   }
 
   function renderAi() {
@@ -356,7 +484,6 @@
     renderAi();
   }
 
-  /* ---- Chat room (local) ---- */
   function renderChat() {
     const log = $("#chat-log");
     log.innerHTML = state.chat
@@ -450,9 +577,14 @@
     };
 
     $("#player-back").onclick = closePlayer;
-    $("#player-reload").onclick = () => { $("#frame").src = state.currentUrl; };
+    $("#player-reload").onclick = () => {
+      if (state.isLocalGame) openPlayer(state.currentUrl, state.currentName, state.currentName, { local: true });
+      else openPlayer(state.currentUrl, state.currentName);
+    };
     $("#player-newtab").onclick = () => window.open(state.currentUrl, "_blank");
     $("#player-fav").onclick = () => toggleFav($("#player-fav").dataset.key);
+    $("#fallback-newtab").onclick = () => window.open(state.currentUrl, "_blank");
+    $("#fallback-back").onclick = closePlayer;
 
     $("#ai-form").onsubmit = (e) => {
       e.preventDefault();
@@ -460,7 +592,7 @@
       if (!text) return;
       $("#ai-input").value = "";
       pushAi("me", text);
-      setTimeout(() => pushAi("bot", aiReply(text)), 280);
+      setTimeout(() => pushAi("bot", aiReply(text)), 220);
     };
     $("#ai-clear").onclick = () => {
       state.aiLog = [];
@@ -470,7 +602,7 @@
     $$("#ai-prompts .chip").forEach((b) => {
       b.onclick = () => {
         pushAi("me", b.dataset.prompt);
-        setTimeout(() => pushAi("bot", aiReply(b.dataset.prompt)), 280);
+        setTimeout(() => pushAi("bot", aiReply(b.dataset.prompt)), 220);
       };
     });
 
@@ -510,7 +642,7 @@
     renderChat();
     refreshStats();
     if (!state.aiLog.length) {
-      pushAi("bot", "Hey — ask for a joke, riddle, fun fact, or a game idea. For full AI models, open an AI site from Apps.");
+      pushAi("bot", "Hey. Try math (12*(5+3)), “write an essay about …”, a joke, or a game idea.");
     }
   }
 
