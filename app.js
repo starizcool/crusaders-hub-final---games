@@ -178,7 +178,10 @@
     state.currentName = title || url;
     state.isLocalGame = local;
     $("#player-title").textContent = state.currentName;
-    $("#player").classList.remove("hidden");
+    const ply = $("#player");
+    ply.classList.remove("hidden");
+    ply.style.display = "flex";
+    ply.setAttribute("aria-hidden", "false");
     const key = favKey || title;
     $("#player-fav").textContent = state.favs.includes(key) ? "★" : "☆";
     $("#player-fav").dataset.key = key;
@@ -235,7 +238,10 @@
   }
 
   function closePlayer() {
-    $("#player").classList.add("hidden");
+    const ply = $("#player");
+    ply.classList.add("hidden");
+    ply.style.display = "none";
+    ply.setAttribute("aria-hidden", "true");
     $("#frame").src = "about:blank";
     hideFallback();
   }
@@ -626,6 +632,8 @@ In short, ${t} is worth paying attention to. With a clear definition, strong rea
   }
 
   function init() {
+    // Always start with player closed so nothing blocks clicks
+    closePlayer();
     setBg(state.bg);
     setCloak(state.cloak);
     setMotion(state.motion);
@@ -642,7 +650,7 @@ In short, ${t} is worth paying attention to. With a clear definition, strong rea
     renderChat();
     refreshStats();
     if (!state.aiLog.length) {
-      pushAi("bot", "Hey. Try math (12*(5+3)), “write an essay about …”, a joke, or a game idea.");
+      pushAi("bot", "Hey. Try math (12*(5+3)), write an essay about a topic, a joke, or a game idea.");
     }
   }
 
