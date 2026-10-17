@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -46,7 +46,7 @@
     <p class="tagline">games · ai · search · chat</p>
     <div class="clock" id="clock">00:00</div>
     <div class="greeting" id="greeting">good afternoon</div>
-    <form class="search-shell" id="home-search-form">
+    <form class="search-shell" id="home-search-form" action="javascript:void(0)">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
       <input type="text" id="home-search" placeholder="search the web, games, or enter a url" autocomplete="off">
       <button type="submit" class="go">Go</button>
@@ -93,13 +93,14 @@
       <button type="button" class="btn ghost" id="ai-clear">Clear</button>
     </header>
     <div class="chat-log" id="ai-log"></div>
-    <form class="chat-compose" id="ai-form">
+    <form class="chat-compose" id="ai-form" action="javascript:void(0)" method="post">
       <input type="text" id="ai-input" class="field grow" placeholder="Ask anything…" autocomplete="off">
-      <button type="submit" class="btn">Send</button>
+      <button type="button" class="btn" id="ai-send">Send</button>
     </form>
     <div class="chip-row" id="ai-prompts">
       <button type="button" class="chip" data-prompt="Tell me a fun fact">Fun fact</button>
-      <button type="button" class="chip" data-prompt="Give me a riddle">Riddle</button>
+      <button type="button" class="chip" data-prompt="Solve 12 * (5 + 3)">Math</button>
+      <button type="button" class="chip" data-prompt="Write an essay about climate change">Essay</button>
       <button type="button" class="chip" data-prompt="Suggest a random game to play">Game idea</button>
       <button type="button" class="chip" data-prompt="Write a short joke">Joke</button>
     </div>
@@ -122,7 +123,7 @@
       <button type="button" class="opt" data-engine="brave">Brave</button>
       <button type="button" class="opt" data-engine="youtube">YouTube</button>
     </div>
-    <form class="search-shell solid" id="web-search-form" style="margin-top:16px">
+    <form class="search-shell solid" id="web-search-form" action="javascript:void(0)" style="margin-top:16px">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
       <input type="text" id="web-search" placeholder="Search the web…" autocomplete="off">
       <button type="submit" class="go">Search</button>
@@ -147,9 +148,9 @@
       <span class="muted small" id="chat-count">0 messages</span>
     </div>
     <div class="chat-log" id="chat-log"></div>
-    <form class="chat-compose" id="chat-form">
+    <form class="chat-compose" id="chat-form" action="javascript:void(0)" method="post">
       <input type="text" id="chat-input" class="field grow" placeholder="Say something…" autocomplete="off" maxlength="280">
-      <button type="submit" class="btn">Send</button>
+      <button type="button" class="btn" id="chat-send">Send</button>
     </form>
   </div>
 </section>
@@ -233,7 +234,7 @@
   </div>
 </section>
 
-<div class="player hidden" id="player">
+<div class="player hidden" id="player" style="display:none" aria-hidden="true">
   <div class="player-bar">
     <button type="button" class="btn ghost" id="player-back">← Back</button>
     <div class="player-title" id="player-title">Loading…</div>
@@ -242,6 +243,15 @@
     <button type="button" class="btn ghost" id="player-newtab">New tab</button>
   </div>
   <iframe id="frame" title="Player" allowfullscreen></iframe>
+  <div class="player-fallback hidden" id="player-fallback">
+    <h2 id="fallback-title">Couldn’t open this</h2>
+    <p id="fallback-msg">The file may be missing, or the site blocks embedding.</p>
+    <p><code id="fallback-path"></code></p>
+    <div class="btn-row">
+      <button type="button" class="btn" id="fallback-newtab">Open in new tab</button>
+      <button type="button" class="btn ghost" id="fallback-back">Back</button>
+    </div>
+  </div>
 </div>
 
 <script src="games.js"></script>
