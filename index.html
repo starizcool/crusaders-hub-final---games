@@ -89,10 +89,10 @@
     <header class="panel-head">
       <div>
         <h1>AI</h1>
-        <p class="muted" id="ai-status">Click “Enable Smart AI”, then send a message</p>
+        <p class="muted" id="ai-status">Fully local · no sign-in</p>
       </div>
       <div class="btn-row">
-        <button type="button" class="btn" id="ai-signin">Enable Smart AI</button>
+        
         <button type="button" class="btn ghost" id="ai-clear">Clear</button>
       </div>
     </header>
@@ -213,6 +213,19 @@
         <label>Proxy base URL</label>
         <input type="text" id="set-proxy" class="field" placeholder="https://your-proxy.example/service/">
         <p class="muted small">Optional Scramjet / UV service prefix</p>
+      </div>
+      <div class="setting">
+        <label>AI API key (optional — Groq / OpenAI-compatible)</label>
+        <input type="password" id="set-ai-key" class="field" placeholder="gsk_... or sk-...">
+        <p class="muted small">Free key from console.groq.com — makes AI much smarter. Stored only in your browser.</p>
+      </div>
+      <div class="setting">
+        <label>AI API URL (optional)</label>
+        <input type="text" id="set-ai-url" class="field" value="https://api.groq.com/openai/v1/chat/completions" placeholder="https://api.groq.com/openai/v1/chat/completions">
+      </div>
+      <div class="setting">
+        <label>AI model (optional)</label>
+        <input type="text" id="set-ai-model" class="field" value="llama-3.3-70b-versatile" placeholder="llama-3.3-70b-versatile">
       </div>
       <div class="setting">
         <label>Games folder path</label>
