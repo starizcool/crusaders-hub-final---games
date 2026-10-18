@@ -497,6 +497,7 @@
   }
 
 
+
   /* -------- Smart AI (Puter) + local fallback -------- */
   function trySolveMath(text) {
     let expr = text.trim();
@@ -519,7 +520,7 @@
       const result = Function('"use strict"; return (' + expr + ");")();
       if (typeof result !== "number" || !isFinite(result)) return null;
       return expr.replace(/\*\*/g, "^") + " = " + result;
-    } catch {
+    } catch (e) {
       return null;
     }
   }
@@ -532,13 +533,9 @@
     return (
       "Title: " + title +
       "\n\nIntroduction\n" + title +
-      " is worth understanding clearly. This short essay explains what it is, why it matters, and what someone can do next.\n\n" +
-      "Body paragraph 1 — What it is\nAt its core, " + tpc +
-      " involves the main ideas connected to the topic. Breaking it into smaller parts makes it easier to study.\n\n" +
-      "Body paragraph 2 — Why it matters\n" + title +
-      " matters because it can affect real decisions. Learning about it helps you form stronger opinions.\n\n" +
-      "Body paragraph 3 — What to do\nA good next step is to learn a little more and explain it in your own words.\n\n" +
-      "Conclusion\nIn short, " + tpc + " is worth paying attention to."
+      " is worth understanding clearly.\n\nBody — What it is\n" + tpc +
+      " covers the main ideas of the topic.\n\nBody — Why it matters\nIt matters because it affects real decisions.\n\nConclusion\n" +
+      tpc + " is worth learning about."
     );
   }
 
@@ -557,11 +554,11 @@
       const list = games();
       if (!list.length) return "Open the Games tab and pick anything.";
       const g = list[Math.floor(Math.random() * list.length)];
-      return "Try " + g.name + " — open it from the Games tab.";
+      return "Try " + g.name + " from the Games tab.";
     }
     if (/hello|hi\b|hey/.test(t))
-      return "Hey. Smart AI needs Puter (a free sign-in popup). If that is blocked, I can still do math, essays, jokes, and game ideas.";
-    return "Smart mode needs Puter. If the popup was blocked, allow popups for this site, or try math / essay / joke requests offline.";
+      return "Hey! Click **Enable Smart AI** above for full chat. Offline I can still do math, essays, jokes, and game ideas.";
+    return "Offline mode active. Click **Enable Smart AI** (top of this panel) for real conversation. Or ask me to solve math, write an essay, tell a joke, or suggest a game.";
   }
 
   function setAiStatus(msg) {
@@ -570,67 +567,91 @@
   }
 
   function hasPuter() {
-    return typeof window.puter !== "undefined" &&
-      window.puter &&
-      window.puter.ai &&
-      typeof window.puter.ai.chat === "function";
+    try {
+      return !!(window.puter && window.puter.ai && typeof window.puter.ai.chat === "function");
+    } catch (e) {
+      return false;
+    }
   }
 
-  function buildAiMessages(userText) {
-    const system =
-      "You are Arcade AI, a helpful, sharp assistant on a student games/hub website called Arcade. " +
-      "Be clear, friendly, and practical. Use short paragraphs. Reason step by step when solving problems. " +
-      "You can help with school questions, coding, creative writing, planning, explanations, and casual chat. " +
-      "Do not claim to browse the live web unless you actually can. Keep answers useful and not overly long.";
+  function isPuterSignedIn() {
+    try {
+      return !!(window.puter && window.puter.auth && typeof window.puter.auth.isSignedIn === "function" && window.puter.auth.isSignedIn());
+    } catch (e) {
+      return false;
+    }
+  }
 
-    const msgs = [{ role: "system", content: system }];
-    // include recent history for memory
-    const history = state.aiLog.slice(-12);
-    history.forEach(function (m) {
-      if (m.role === "me") msgs.push({ role: "user", content: m.text });
-      else if (m.role === "bot") msgs.push({ role: "assistant", content: m.text });
-    });
-    msgs.push({ role: "user", content: userText });
-    return msgs;
+  async function enableSmartAi() {
+    setAiStatus("Loading Puter…");
+    if (!hasPuter()) {
+      setAiStatus("Puter script not loaded — check network / adblock");
+      pushAi("bot", "Could not load Puter. Disable ad blockers for this site, make sure you are on https (GitHub Pages or Codespaces), then refresh.");
+      return;
+    }
+    try {
+      if (isPuterSignedIn()) {
+        setAiStatus("Smart AI ready");
+        pushAi("bot", "Already signed in. Ask me anything.");
+        return;
+      }
+      setAiStatus("Sign-in window opening…");
+      // Must run from a click handler
+      if (window.puter.auth && typeof window.puter.auth.signIn === "function") {
+        await window.puter.auth.signIn();
+      }
+      setAiStatus("Smart AI ready");
+      pushAi("bot", "Smart AI is on. Ask me anything — homework, code, ideas, explanations.");
+    } catch (err) {
+      console.warn(err);
+      setAiStatus("Sign-in failed · offline mode");
+      pushAi(
+        "bot",
+        "Sign-in did not complete (" +
+          (err && err.message ? err.message : "blocked or closed") +
+          "). Allow popups for this site, click Enable Smart AI again, or keep using offline mode."
+      );
+    }
+  }
+
+  function extractPuterText(result) {
+    if (result == null) return "";
+    if (typeof result === "string") return result;
+    if (typeof result === "object") {
+      if (result.message && result.message.content) return String(result.message.content);
+      if (result.content) return String(result.content);
+      if (result.text) return String(result.text);
+      if (result.toString && result.toString() !== "[object Object]") return result.toString();
+    }
+    return String(result);
   }
 
   async function smartAiReply(userText) {
-    // Prefer real model via Puter
-    if (hasPuter()) {
-      try {
-        setAiStatus("Thinking…");
-        const messages = buildAiMessages(userText);
-        // Puter accepts string or messages depending on version; try messages first
-        let result;
-        try {
-          result = await window.puter.ai.chat(messages);
-        } catch (e1) {
-          // fallback: plain string prompt with context
-          const prompt =
-            "You are Arcade AI, a helpful assistant. Answer clearly and reason step by step when needed.\n\nUser: " +
-            userText;
-          result = await window.puter.ai.chat(prompt);
-        }
-        setAiStatus("Smart AI · Puter");
-        if (result == null) return localAiReply(userText);
-        if (typeof result === "string") return result;
-        if (result.message && result.message.content) return String(result.message.content);
-        if (result.content) return String(result.content);
-        if (result.text) return String(result.text);
-        return String(result);
-      } catch (err) {
-        console.warn("Puter AI error:", err);
-        setAiStatus("Puter error · offline mode");
-        return (
-          localAiReply(userText) +
-          "\n\n(Smart AI hit an error: " +
-          (err && err.message ? err.message : "unknown") +
-          ". Allow popups or try again.)"
-        );
-      }
+    if (!hasPuter()) {
+      setAiStatus("Offline · Puter not loaded");
+      return localAiReply(userText);
     }
-    setAiStatus("Offline mode · Puter not loaded");
-    return localAiReply(userText);
+    try {
+      setAiStatus("Thinking…");
+      // Official style: string prompt
+      const prompt =
+        "You are Arcade AI, a helpful assistant on a games website. Be clear, friendly, and reason step by step when needed.\n\nUser: " +
+        userText;
+      const result = await window.puter.ai.chat(prompt);
+      const text = extractPuterText(result).trim();
+      setAiStatus(isPuterSignedIn() ? "Smart AI ready" : "Smart AI (session)");
+      if (!text) return localAiReply(userText);
+      return text;
+    } catch (err) {
+      console.warn("Puter AI error:", err);
+      setAiStatus("Error · try Enable Smart AI");
+      return (
+        localAiReply(userText) +
+        "\n\n(Smart AI error: " +
+        (err && err.message ? err.message : "unknown") +
+        ". Click **Enable Smart AI** if you have not signed in.)"
+      );
+    }
   }
 
   function renderAi() {
@@ -653,7 +674,7 @@
   }
 
   function pushAi(role, text) {
-    state.aiLog.push({ role: role, text: text });
+    state.aiLog.push({ role: role, text: String(text || "") });
     state.aiLog = state.aiLog.slice(-40);
     store.set("aiLog", state.aiLog);
     renderAi();
@@ -663,8 +684,12 @@
 
   async function sendAi() {
     const input = $("#ai-input");
-    if (!input || aiBusy) return;
-    const text = input.value.trim();
+    if (!input) {
+      console.warn("ai-input missing");
+      return;
+    }
+    if (aiBusy) return;
+    const text = (input.value || "").trim();
     if (!text) return;
     input.value = "";
     pushAi("me", text);
@@ -674,7 +699,6 @@
     pushAi("bot", "…");
     try {
       const reply = await smartAiReply(text);
-      // replace the temporary "…" bubble
       if (state.aiLog.length && state.aiLog[state.aiLog.length - 1].text === "…") {
         state.aiLog.pop();
       }
@@ -683,7 +707,7 @@
       if (state.aiLog.length && state.aiLog[state.aiLog.length - 1].text === "…") {
         state.aiLog.pop();
       }
-      pushAi("bot", "Something went wrong. " + (err && err.message ? err.message : ""));
+      pushAi("bot", "Error: " + (err && err.message ? err.message : String(err)));
     }
     aiBusy = false;
     if (sendBtn) sendBtn.disabled = false;
@@ -882,6 +906,11 @@
         toggleFav(($("#player-fav") || {}).dataset.key);
         return;
       }
+      if (e.target.closest("#ai-signin")) {
+        e.preventDefault();
+        enableSmartAi();
+        return;
+      }
       if (e.target.closest("#ai-clear")) {
         state.aiLog = [];
         store.set("aiLog", []);
@@ -979,7 +1008,7 @@
       if (!state.aiLog.length) {
         pushAi(
           "bot",
-          "Hey — I can chat, reason, help with homework, code, stories, and more. Ask anything. (First message may open a free Puter sign-in popup.)"
+          "Hey! Click **Enable Smart AI** above for full answers. Offline mode still handles math, essays, jokes, and game ideas."
         );
       }
     } catch (err) {
