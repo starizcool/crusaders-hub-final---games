@@ -496,6 +496,8 @@
     doWebSearch(val);
   }
 
+
+  /* -------- Smart AI (Puter) + local fallback -------- */
   function trySolveMath(text) {
     let expr = text.trim();
     expr = expr.replace(/^(solve|calculate|what is|what's|compute)\s+/i, "");
@@ -523,26 +525,24 @@
   }
 
   function writeEssay(topic) {
-    let t = topic.trim();
-    t = t.replace(/^(write\s+)?(an?\s+)?essay\s+(about|on|regarding)\s+/i, "");
-    t = t.replace(/^essay\s*:\s*/i, "").trim() || "this topic";
-    const title = t.charAt(0).toUpperCase() + t.slice(1);
+    let tpc = topic.trim();
+    tpc = tpc.replace(/^(write\s+)?(an?\s+)?essay\s+(about|on|regarding)\s+/i, "");
+    tpc = tpc.replace(/^essay\s*:\s*/i, "").trim() || "this topic";
+    const title = tpc.charAt(0).toUpperCase() + tpc.slice(1);
     return (
-      "Title: " +
-      title +
-      "\n\nIntroduction\n" +
-      title +
-      " is an important subject worth understanding clearly. This short essay explains what it is, why it matters, and what someone can do next.\n\nBody paragraph 1 — What it is\nAt its core, " +
-      t +
-      " involves the main ideas and facts connected to the topic. Breaking it into smaller parts makes it easier to study and explain.\n\nBody paragraph 2 — Why it matters\n" +
-      title +
-      " matters because it can affect people and decisions in real life. Learning about it helps you form stronger opinions and solve problems.\n\nBody paragraph 3 — What to do\nA good next step is to learn a little more, write ideas in your own words, and check a few reliable sources.\n\nConclusion\nIn short, " +
-      t +
-      " is worth paying attention to. With clear points and simple examples, you can talk about it with more confidence.\n\n(Tip: add your own facts and sources for school work.)"
+      "Title: " + title +
+      "\n\nIntroduction\n" + title +
+      " is worth understanding clearly. This short essay explains what it is, why it matters, and what someone can do next.\n\n" +
+      "Body paragraph 1 — What it is\nAt its core, " + tpc +
+      " involves the main ideas connected to the topic. Breaking it into smaller parts makes it easier to study.\n\n" +
+      "Body paragraph 2 — Why it matters\n" + title +
+      " matters because it can affect real decisions. Learning about it helps you form stronger opinions.\n\n" +
+      "Body paragraph 3 — What to do\nA good next step is to learn a little more and explain it in your own words.\n\n" +
+      "Conclusion\nIn short, " + tpc + " is worth paying attention to."
     );
   }
 
-  function aiReply(text) {
+  function localAiReply(text) {
     const t = text.toLowerCase();
     if (/solve|calculate|what is|what's|\d\s*[\+\-\*\/x×÷^%()]/.test(t)) {
       const solved = trySolveMath(text);
@@ -560,26 +560,85 @@
       return "Try " + g.name + " — open it from the Games tab.";
     }
     if (/hello|hi\b|hey/.test(t))
-      return "Hey. I can solve math (try 12*(5+3)), write a short essay, tell a joke, or suggest a game.";
-    if (/help|what can/.test(t))
-      return "Try:\n• Math: solve 25*4+10\n• Essay: write an essay about space\n• Joke / fun fact / game idea";
-    return 'Try a math problem (like 15/3+2), "write an essay about …", a joke, or a game idea.';
+      return "Hey. Smart AI needs Puter (a free sign-in popup). If that is blocked, I can still do math, essays, jokes, and game ideas.";
+    return "Smart mode needs Puter. If the popup was blocked, allow popups for this site, or try math / essay / joke requests offline.";
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+  function setAiStatus(msg) {
+    const el = $("#ai-status");
+    if (el) el.textContent = msg;
+  }
+
+  function hasPuter() {
+    return typeof window.puter !== "undefined" &&
+      window.puter &&
+      window.puter.ai &&
+      typeof window.puter.ai.chat === "function";
+  }
+
+  function buildAiMessages(userText) {
+    const system =
+      "You are Arcade AI, a helpful, sharp assistant on a student games/hub website called Arcade. " +
+      "Be clear, friendly, and practical. Use short paragraphs. Reason step by step when solving problems. " +
+      "You can help with school questions, coding, creative writing, planning, explanations, and casual chat. " +
+      "Do not claim to browse the live web unless you actually can. Keep answers useful and not overly long.";
+
+    const msgs = [{ role: "system", content: system }];
+    // include recent history for memory
+    const history = state.aiLog.slice(-12);
+    history.forEach(function (m) {
+      if (m.role === "me") msgs.push({ role: "user", content: m.text });
+      else if (m.role === "bot") msgs.push({ role: "assistant", content: m.text });
+    });
+    msgs.push({ role: "user", content: userText });
+    return msgs;
+  }
+
+  async function smartAiReply(userText) {
+    // Prefer real model via Puter
+    if (hasPuter()) {
+      try {
+        setAiStatus("Thinking…");
+        const messages = buildAiMessages(userText);
+        // Puter accepts string or messages depending on version; try messages first
+        let result;
+        try {
+          result = await window.puter.ai.chat(messages);
+        } catch (e1) {
+          // fallback: plain string prompt with context
+          const prompt =
+            "You are Arcade AI, a helpful assistant. Answer clearly and reason step by step when needed.\n\nUser: " +
+            userText;
+          result = await window.puter.ai.chat(prompt);
+        }
+        setAiStatus("Smart AI · Puter");
+        if (result == null) return localAiReply(userText);
+        if (typeof result === "string") return result;
+        if (result.message && result.message.content) return String(result.message.content);
+        if (result.content) return String(result.content);
+        if (result.text) return String(result.text);
+        return String(result);
+      } catch (err) {
+        console.warn("Puter AI error:", err);
+        setAiStatus("Puter error · offline mode");
+        return (
+          localAiReply(userText) +
+          "\n\n(Smart AI hit an error: " +
+          (err && err.message ? err.message : "unknown") +
+          ". Allow popups or try again.)"
+        );
+      }
+    }
+    setAiStatus("Offline mode · Puter not loaded");
+    return localAiReply(userText);
   }
 
   function renderAi() {
     const log = $("#ai-log");
     if (!log) return;
     log.innerHTML = state.aiLog
-      .map(
-        (m) =>
+      .map(function (m) {
+        return (
           '<div class="bubble ' +
           (m.role === "me" ? "me" : "bot") +
           '"><span class="who">' +
@@ -587,7 +646,8 @@
           "</span>" +
           escapeHtml(m.text) +
           "</div>"
-      )
+        );
+      })
       .join("");
     log.scrollTop = log.scrollHeight;
   }
@@ -599,16 +659,34 @@
     renderAi();
   }
 
-  function sendAi() {
+  var aiBusy = false;
+
+  async function sendAi() {
     const input = $("#ai-input");
-    if (!input) return;
+    if (!input || aiBusy) return;
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
     pushAi("me", text);
-    setTimeout(function () {
-      pushAi("bot", aiReply(text));
-    }, 200);
+    aiBusy = true;
+    const sendBtn = $("#ai-send");
+    if (sendBtn) sendBtn.disabled = true;
+    pushAi("bot", "…");
+    try {
+      const reply = await smartAiReply(text);
+      // replace the temporary "…" bubble
+      if (state.aiLog.length && state.aiLog[state.aiLog.length - 1].text === "…") {
+        state.aiLog.pop();
+      }
+      pushAi("bot", reply || "No response.");
+    } catch (err) {
+      if (state.aiLog.length && state.aiLog[state.aiLog.length - 1].text === "…") {
+        state.aiLog.pop();
+      }
+      pushAi("bot", "Something went wrong. " + (err && err.message ? err.message : ""));
+    }
+    aiBusy = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 
   function renderChat() {
@@ -775,10 +853,9 @@
 
       const prompt = e.target.closest("#ai-prompts [data-prompt]");
       if (prompt) {
-        pushAi("me", prompt.dataset.prompt);
-        setTimeout(function () {
-          pushAi("bot", aiReply(prompt.dataset.prompt));
-        }, 200);
+        const input = $("#ai-input");
+        if (input) input.value = prompt.dataset.prompt;
+        sendAi();
         return;
       }
 
@@ -902,7 +979,7 @@
       if (!state.aiLog.length) {
         pushAi(
           "bot",
-          "Hey. Try math (12*(5+3)), write an essay about a topic, a joke, or a game idea."
+          "Hey — I can chat, reason, help with homework, code, stories, and more. Ask anything. (First message may open a free Puter sign-in popup.)"
         );
       }
     } catch (err) {
