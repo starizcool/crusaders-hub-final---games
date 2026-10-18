@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<script src="https://js.puter.com/v2/"></script>
 </head>
 <body data-bg="mountain">
 <div class="sky" id="sky"></div>
@@ -47,7 +46,7 @@
     <p class="tagline">games · ai · search · chat</p>
     <div class="clock" id="clock">00:00</div>
     <div class="greeting" id="greeting">good afternoon</div>
-    <form class="search-shell" id="home-search-form" action="javascript:void(0)">
+    <form class="search-shell" id="home-search-form" action="#" onsubmit="return false;">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
       <input type="text" id="home-search" placeholder="search the web, games, or enter a url" autocomplete="off">
       <button type="submit" class="go">Go</button>
@@ -91,22 +90,19 @@
         <h1>AI</h1>
         <p class="muted" id="ai-status">Fully local · no sign-in</p>
       </div>
-      <div class="btn-row">
-        
-        <button type="button" class="btn ghost" id="ai-clear">Clear</button>
-      </div>
+      <button type="button" class="btn ghost" id="ai-clear">Clear</button>
     </header>
     <div class="chat-log" id="ai-log"></div>
-    <form class="chat-compose" id="ai-form" action="javascript:void(0)" method="post">
+    <div class="chat-compose">
       <input type="text" id="ai-input" class="field grow" placeholder="Ask anything…" autocomplete="off">
       <button type="button" class="btn" id="ai-send">Send</button>
-    </form>
+    </div>
     <div class="chip-row" id="ai-prompts">
-      <button type="button" class="chip" data-prompt="Explain black holes like I'm 12">Explain</button>
-      <button type="button" class="chip" data-prompt="Help me plan a weekend project">Plan</button>
-      <button type="button" class="chip" data-prompt="Write a short creative story opening">Story</button>
-      <button type="button" class="chip" data-prompt="Solve and show steps: 12 * (5 + 3) / 4">Math</button>
-      <button type="button" class="chip" data-prompt="Suggest a fun game from my library and why">Game idea</button>
+      <button type="button" class="chip" data-prompt="help">Help</button>
+      <button type="button" class="chip" data-prompt="solve 12*(5+3)">Math</button>
+      <button type="button" class="chip" data-prompt="write an essay about space">Essay</button>
+      <button type="button" class="chip" data-prompt="suggest a game">Game</button>
+      <button type="button" class="chip" data-prompt="tell me a joke">Joke</button>
     </div>
   </div>
 </section>
@@ -116,7 +112,7 @@
     <header class="panel-head">
       <div>
         <h1>Search</h1>
-        <p class="muted">Choose an engine, then search</p>
+        <p class="muted">Opens results (proxy in Settings if you have one)</p>
       </div>
     </header>
     <div class="options" id="engine-options">
@@ -127,12 +123,12 @@
       <button type="button" class="opt" data-engine="brave">Brave</button>
       <button type="button" class="opt" data-engine="youtube">YouTube</button>
     </div>
-    <form class="search-shell solid" id="web-search-form" action="javascript:void(0)" style="margin-top:16px">
+    <form class="search-shell solid" id="web-search-form" action="#" onsubmit="return false;" style="margin-top:16px">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
       <input type="text" id="web-search" placeholder="Search the web…" autocomplete="off">
       <button type="submit" class="go">Search</button>
     </form>
-    <div class="note" style="margin-top:16px">Opens in the player. Proxy from Settings is used when set.</div>
+    <div class="note" style="margin-top:16px">Without a proxy, results open in a new tab. With Ultraviolet/Scramjet URL in Settings, they load in the player.</div>
     <h3 class="subhead">Recent searches</h3>
     <div class="chip-row" id="recent-searches"></div>
   </div>
@@ -152,10 +148,10 @@
       <span class="muted small" id="chat-count">0 messages</span>
     </div>
     <div class="chat-log" id="chat-log"></div>
-    <form class="chat-compose" id="chat-form" action="javascript:void(0)" method="post">
+    <div class="chat-compose">
       <input type="text" id="chat-input" class="field grow" placeholder="Say something…" autocomplete="off" maxlength="280">
       <button type="button" class="btn" id="chat-send">Send</button>
-    </form>
+    </div>
   </div>
 </section>
 
@@ -164,7 +160,7 @@
     <header class="panel-head">
       <div>
         <h1>Apps & links</h1>
-        <p class="muted">Media, tools, hangouts</p>
+        <p class="muted">Opens via proxy if set, otherwise new tab</p>
       </div>
     </header>
     <div class="apps-grid" id="apps-grid"></div>
@@ -176,7 +172,7 @@
     <header class="panel-head">
       <div>
         <h1>Settings</h1>
-        <p class="muted">Theme, cloak, proxy, identity</p>
+        <p class="muted">Theme, cloak, proxy</p>
       </div>
     </header>
     <div class="settings-list">
@@ -210,22 +206,20 @@
         <input type="text" id="set-panic" class="field" value="https://classroom.google.com">
       </div>
       <div class="setting">
+        <label>Proxy type</label>
+        <div class="options" id="proxy-type-options">
+          <button type="button" class="opt active" data-proxy-type="uv">Ultraviolet</button>
+          <button type="button" class="opt" data-proxy-type="scramjet">Scramjet</button>
+          <button type="button" class="opt" data-proxy-type="raw">Raw</button>
+        </div>
+      </div>
+      <div class="setting">
         <label>Proxy base URL</label>
-        <input type="text" id="set-proxy" class="field" placeholder="https://your-proxy.example/service/">
-        <p class="muted small">Optional Scramjet / UV service prefix</p>
-      </div>
-      <div class="setting">
-        <label>AI API key (optional — Groq / OpenAI-compatible)</label>
-        <input type="password" id="set-ai-key" class="field" placeholder="gsk_... or sk-...">
-        <p class="muted small">Free key from console.groq.com — makes AI much smarter. Stored only in your browser.</p>
-      </div>
-      <div class="setting">
-        <label>AI API URL (optional)</label>
-        <input type="text" id="set-ai-url" class="field" value="https://api.groq.com/openai/v1/chat/completions" placeholder="https://api.groq.com/openai/v1/chat/completions">
-      </div>
-      <div class="setting">
-        <label>AI model (optional)</label>
-        <input type="text" id="set-ai-model" class="field" value="llama-3.3-70b-versatile" placeholder="llama-3.3-70b-versatile">
+        <input type="text" id="set-proxy" class="field" placeholder="https://your-host.example/service/">
+        <p class="muted small">Your UV/Scramjet service URL. Search + Apps use this.</p>
+        <div class="btn-row" style="margin-top:8px">
+          <button type="button" class="btn ghost" id="proxy-test">Test proxy</button>
+        </div>
       </div>
       <div class="setting">
         <label>Games folder path</label>
@@ -247,7 +241,7 @@
         <button type="button" class="btn danger" id="reset-data">Reset all local data</button>
       </div>
     </div>
-    <p class="footer-note">Arcade — games, AI, search, chat. Runs in your browser.</p>
+    <p class="footer-note">Arcade — runs in your browser.</p>
   </div>
 </section>
 
@@ -262,7 +256,7 @@
   <iframe id="frame" title="Player" allowfullscreen></iframe>
   <div class="player-fallback hidden" id="player-fallback">
     <h2 id="fallback-title">Couldn’t open this</h2>
-    <p id="fallback-msg">The file may be missing, or the site blocks embedding.</p>
+    <p id="fallback-msg">Missing file or blocked embed.</p>
     <p><code id="fallback-path"></code></p>
     <div class="btn-row">
       <button type="button" class="btn" id="fallback-newtab">Open in new tab</button>
