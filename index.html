@@ -89,9 +89,12 @@
     <header class="panel-head">
       <div>
         <h1>AI</h1>
-        <p class="muted" id="ai-status">Smart AI · free via Puter (sign-in popup once)</p>
+        <p class="muted" id="ai-status">Click “Enable Smart AI”, then send a message</p>
       </div>
-      <button type="button" class="btn ghost" id="ai-clear">Clear</button>
+      <div class="btn-row">
+        <button type="button" class="btn" id="ai-signin">Enable Smart AI</button>
+        <button type="button" class="btn ghost" id="ai-clear">Clear</button>
+      </div>
     </header>
     <div class="chat-log" id="ai-log"></div>
     <form class="chat-compose" id="ai-form" action="javascript:void(0)" method="post">
