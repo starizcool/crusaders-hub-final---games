@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://js.puter.com/v2/"></script>
 </head>
 <body data-bg="mountain">
 <div class="sky" id="sky"></div>
@@ -88,7 +89,7 @@
     <header class="panel-head">
       <div>
         <h1>AI</h1>
-        <p class="muted">On-device replies · no login</p>
+        <p class="muted" id="ai-status">Smart AI · free via Puter (sign-in popup once)</p>
       </div>
       <button type="button" class="btn ghost" id="ai-clear">Clear</button>
     </header>
@@ -98,11 +99,11 @@
       <button type="button" class="btn" id="ai-send">Send</button>
     </form>
     <div class="chip-row" id="ai-prompts">
-      <button type="button" class="chip" data-prompt="Tell me a fun fact">Fun fact</button>
-      <button type="button" class="chip" data-prompt="Solve 12 * (5 + 3)">Math</button>
-      <button type="button" class="chip" data-prompt="Write an essay about climate change">Essay</button>
-      <button type="button" class="chip" data-prompt="Suggest a random game to play">Game idea</button>
-      <button type="button" class="chip" data-prompt="Write a short joke">Joke</button>
+      <button type="button" class="chip" data-prompt="Explain black holes like I'm 12">Explain</button>
+      <button type="button" class="chip" data-prompt="Help me plan a weekend project">Plan</button>
+      <button type="button" class="chip" data-prompt="Write a short creative story opening">Story</button>
+      <button type="button" class="chip" data-prompt="Solve and show steps: 12 * (5 + 3) / 4">Math</button>
+      <button type="button" class="chip" data-prompt="Suggest a fun game from my library and why">Game idea</button>
     </div>
   </div>
 </section>
